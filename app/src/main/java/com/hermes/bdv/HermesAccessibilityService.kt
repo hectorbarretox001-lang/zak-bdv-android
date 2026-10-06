@@ -59,8 +59,8 @@ class HermesAccessibilityService : AccessibilityService() {
         const val TIPO_EXITO = "exito"
 
         private const val PAQUETE_BDV = "com.bancodevenezuela.bdvdigital"
-        private const val CTA_DEBITO = "7574"
-        private const val CTA_DESTINO = "7470"
+        private const val CTA_DEBITO = "8682"
+        private const val CTA_DESTINO = "9427"
 
         // Reglas de Jhon
         // (límites de reintento eliminados por petición del usuario 29/09/2026:
@@ -1339,13 +1339,13 @@ class HermesAccessibilityService : AccessibilityService() {
     private fun pasoDestinoActividad(): Boolean {
         if (pulsar(descContiene = "Destino de los fondos", textoContiene = "Destino de los fondos", timeoutMs = 6_000)) {
             esperar(300)
-            if (pulsar(desc = "Otros", texto = "Otros", timeoutMs = 5_000)) {
+            if (pulsar(desc = "Ahorro", texto = "Ahorro", timeoutMs = 5_000)) {
                 Log.i(TAG, "Destino=Otros")
             }
         }
         if (pulsar(descContiene = "Actividad", timeoutMs = 6_000)) {
             esperar(300)
-            if (pulsar(descContiene = "No aplica", textoContiene = "No aplica", timeoutMs = 5_000)) {
+            if (pulsar(descContiene = "Comercio al por mayor", textoContiene = "Comercio al por mayor", timeoutMs = 5_000)) {
                 Log.i(TAG, "Actividad=No aplica")
             }
         }
