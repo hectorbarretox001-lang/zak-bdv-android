@@ -180,6 +180,35 @@ class MainActivity : AppCompatActivity() {
             })
         })
 
+        // Cuentas BDV (últimos 4 dígitos)
+        cont.addView(card().apply {
+            addView(cardTitle("Cuentas BDV"))
+            addView(hintText("Escribe solo los últimos 4 dígitos de cada cuenta."))
+            val etDebito = styledField(Config.getCtaDebito(this@MainActivity)).apply {
+                inputType = InputType.TYPE_CLASS_NUMBER
+                hint = "Cuenta a debitar (Bs) – 4 dígitos"
+            }
+            addView(etDebito)
+            val etDestino = styledField(Config.getCtaDestino(this@MainActivity)).apply {
+                inputType = InputType.TYPE_CLASS_NUMBER
+                hint = "Cuenta destino (divisas) – 4 dígitos"
+            }
+            addView(etDestino)
+            addView(primaryButton("Guardar cuentas") {
+                val d = etDebito.text.toString().trim()
+                val t = etDestino.text.toString().trim()
+                val ok4 = Regex("^\\d{4}$")
+                if (!ok4.matches(d) || !ok4.matches(t)) {
+                    toast("Cada cuenta debe tener exactamente 4 dígitos")
+                } else {
+                    Config.setCtaDebito(this@MainActivity, d)
+                    Config.setCtaDestino(this@MainActivity, t)
+                    toast("Cuentas guardadas")
+                    agregarRegistro("Cuentas configuradas: **$d → **$t")
+                }
+            })
+        })
+
         // Clave bancaria (preconfigurada, cifrada en el dispositivo)
         cont.addView(card().apply {
             addView(cardTitle("Clave bancaria"))

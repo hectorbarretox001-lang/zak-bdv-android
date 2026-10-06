@@ -138,7 +138,10 @@ object TelegramControl {
                     "Hermes:\n" +
                         "· Servicio accesibilidad: ${if (servicioOn) "activo" else "inactivo"}\n" +
                         "· Clave: ${if (claveOk) "configurada" else "sin configurar"}\n" +
-                        "· Monto: $monto USD"
+                        "· Monto: $monto USD\n" +
+                        "· Cuentas: " + (if (Config.cuentasConfiguradas(context))
+                            "**${Config.getCtaDebito(context)} → **${Config.getCtaDestino(context)}"
+                        else "sin configurar")
                 )
             }
             "/monto" -> {

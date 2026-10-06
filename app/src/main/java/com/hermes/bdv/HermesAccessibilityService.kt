@@ -59,8 +59,6 @@ class HermesAccessibilityService : AccessibilityService() {
         const val TIPO_EXITO = "exito"
 
         private const val PAQUETE_BDV = "com.bancodevenezuela.bdvdigital"
-        private const val CTA_DEBITO = "8682"
-        private const val CTA_DESTINO = "9427"
 
         // Reglas de Jhon
         // (límites de reintento eliminados por petición del usuario 29/09/2026:
@@ -214,6 +212,10 @@ class HermesAccessibilityService : AccessibilityService() {
             .ifEmpty { ClaveSegura.leer(this) }
         val hora = intent.getStringExtra(EXTRA_HORA_OBJETIVO)?.trim().orEmpty()
 
+        if (!Config.cuentasConfiguradas(this)) {
+            notificar(TIPO_ERROR, "⚠ Cuentas sin configurar. Escribe los últimos 4 dígitos en la app.")
+            return START_STICKY
+        }
         if (monto.isEmpty() || clave.isEmpty()) {
             notificar(TIPO_ERROR, "⚠ Faltan datos para ejecutar (monto/clave). Configura la clave en la app.")
             return START_STICKY
@@ -1308,7 +1310,10 @@ class HermesAccessibilityService : AccessibilityService() {
             Log.w(TAG, "no se detectó el formulario 'Compra de divisas'")
             return false
         }
-        for ((selector, ult4) in listOf("Cuenta a debitar:" to CTA_DEBITO, "Cuenta destino:" to CTA_DESTINO)) {
+        for ((selector, ult4) in listOf(
+            "Cuenta a debitar:" to Config.getCtaDebito(this),
+            "Cuenta destino:" to Config.getCtaDestino(this)
+        )) {
             if (!pulsar(desc = selector, timeoutMs = 5_000)) {
                 Log.w(TAG, "selector '$selector' no encontrado")
                 return false

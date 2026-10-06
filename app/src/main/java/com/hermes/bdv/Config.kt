@@ -24,6 +24,8 @@ object Config {
     private const val K_CHAT_TG = "chat_telegram"
     private const val K_AVISOS = "avisos_activos"
     private const val K_PROGS = "programaciones"
+    private const val K_CTA_DEBITO = "cta_debito"
+    private const val K_CTA_DESTINO = "cta_destino"
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -34,6 +36,25 @@ object Config {
     fun setMonto(c: Context, v: String) {
         prefs(c).edit().putString(K_MONTO, v.trim()).apply()
     }
+
+    /** Últimos 4 dígitos de la cuenta a debitar (Bs). Vacío = sin configurar. */
+    fun getCtaDebito(c: Context): String =
+        prefs(c).getString(K_CTA_DEBITO, "") ?: ""
+
+    fun setCtaDebito(c: Context, v: String) {
+        prefs(c).edit().putString(K_CTA_DEBITO, v.trim()).apply()
+    }
+
+    /** Últimos 4 dígitos de la cuenta destino (divisas). Vacío = sin configurar. */
+    fun getCtaDestino(c: Context): String =
+        prefs(c).getString(K_CTA_DESTINO, "") ?: ""
+
+    fun setCtaDestino(c: Context, v: String) {
+        prefs(c).edit().putString(K_CTA_DESTINO, v.trim()).apply()
+    }
+
+    fun cuentasConfiguradas(c: Context): Boolean =
+        getCtaDebito(c).length == 4 && getCtaDestino(c).length == 4
 
     fun getHoraObjetivo(c: Context): String =
         prefs(c).getString(K_HORA_OBJETIVO, "08:00:00") ?: "08:00:00"
