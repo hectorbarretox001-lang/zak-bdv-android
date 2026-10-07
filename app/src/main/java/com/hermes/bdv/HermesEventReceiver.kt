@@ -42,6 +42,7 @@ class HermesEventReceiver(
         const val TIPO_PANTALLA = "pantalla"
         const val TIPO_ERROR = "error"
         const val TIPO_EXITO = "exito"
+        const val TIPO_HUELLA = "huella"
 
         const val CAPTION_EXITO = "🎉 ¡Felicidades, lograste comprar divisas!"
 
@@ -75,6 +76,12 @@ class HermesEventReceiver(
                 if (mensaje.isNotBlank()) {
                     TelegramNotifier.enviarTexto(token, chatId, "⚠ $mensaje")
                     onLog?.invoke("⚠ $mensaje")
+                }
+            }
+            TIPO_HUELLA -> {
+                if (mensaje.isNotBlank()) {
+                    TelegramNotifier.enviarTexto(token, chatId, mensaje)
+                    onLog?.invoke(mensaje)
                 }
             }
             TIPO_EXITO -> {

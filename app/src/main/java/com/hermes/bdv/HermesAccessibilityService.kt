@@ -10,6 +10,8 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
 import android.os.SystemClock
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.provider.Settings
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
@@ -57,8 +59,11 @@ class HermesAccessibilityService : AccessibilityService() {
         const val TIPO_PANTALLA = "pantalla"
         const val TIPO_ERROR = "error"
         const val TIPO_EXITO = "exito"
+        const val TIPO_HUELLA = "huella"
 
         private const val PAQUETE_BDV = "com.bancodevenezuela.bdvdigital"
+        private const val CTA_DEBITO = "8682"
+        private const val CTA_DESTINO = "9427"
 
         // Reglas de Jhon
         // (límites de reintento eliminados por petición del usuario 29/09/2026:
@@ -212,10 +217,6 @@ class HermesAccessibilityService : AccessibilityService() {
             .ifEmpty { ClaveSegura.leer(this) }
         val hora = intent.getStringExtra(EXTRA_HORA_OBJETIVO)?.trim().orEmpty()
 
-        if (!Config.cuentasConfiguradas(this)) {
-            notificar(TIPO_ERROR, "⚠ Cuentas sin configurar. Escribe los últimos 4 dígitos en la app.")
-            return START_STICKY
-        }
         if (monto.isEmpty() || clave.isEmpty()) {
             notificar(TIPO_ERROR, "⚠ Faltan datos para ejecutar (monto/clave). Configura la clave en la app.")
             return START_STICKY
@@ -377,6 +378,30 @@ class HermesAccessibilityService : AccessibilityService() {
             Log.w(TAG, "no se pudo enviar broadcast", e)
         }
     }
+
+    /**
+     * Aviso potente cuando aparece la autenticación biométrica: texto
+     * destacado por Telegram + vibración larga, para poner la huella ya.
+     * (Randol 07/10/2026)
+     */
+    private fun avisarHuella() {
+        notificar(TIPO_HUELLA, "👆👆 ¡HUELLA AHORA! Pon tu dedo para confirmar la compra.")
+        try {
+            val vib = getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+            if (vib != null && vib.hasVibrator()) {
+                val patron = longArrayOf(0, 500, 250, 500, 250, 800)
+                vib.vibrate(VibrationEffect.createWaveform(patron, -1))
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "no se pudo vibrar", e)
+        }
+    }
+
+    /** Detecta la ventana de autenticación biométrica del sistema/BDV. */
+    private fun esAutenticacionBiometrica(): Boolean =
+        hayTextoContiene("Autentícate") || hayDescContiene("Autentícate") ||
+        hayTextoContiene("Autenticate") || hayDescContiene("Autenticate") ||
+        hayTextoContiene("método de autenticación") || hayDescContiene("método de autenticación")
 
     // ------------------------------------------------------------------
     // Utilidades de espera (hilo de trabajo)
@@ -1012,7 +1037,7 @@ class HermesAccessibilityService : AccessibilityService() {
                         avanzo = true
                         break
                     }
-                    false -> esperar(1_000) // desactivado: la app procesa
+                    false -> esperar(250) // desactivado: la app procesa (reintento rápido)
                     true -> {
                         if (SystemClock.uptimeMillis() - tClick > 2_000) {
                             if (verificarPantalla != null && !verificarPantalla()) {
@@ -1310,10 +1335,7 @@ class HermesAccessibilityService : AccessibilityService() {
             Log.w(TAG, "no se detectó el formulario 'Compra de divisas'")
             return false
         }
-        for ((selector, ult4) in listOf(
-            "Cuenta a debitar:" to Config.getCtaDebito(this),
-            "Cuenta destino:" to Config.getCtaDestino(this)
-        )) {
+        for ((selector, ult4) in listOf("Cuenta a debitar:" to CTA_DEBITO, "Cuenta destino:" to CTA_DESTINO)) {
             if (!pulsar(desc = selector, timeoutMs = 5_000)) {
                 Log.w(TAG, "selector '$selector' no encontrado")
                 return false
@@ -1374,6 +1396,9 @@ class HermesAccessibilityService : AccessibilityService() {
         Log.i(TAG, "pantalla Confirmar Operación detectada")
         notificar(TIPO_PANTALLA, "Paso 6/6: Confirmar Operación.")
 
+        // Aviso anticipado: al confirmar aparece la huella del banco.
+        avisarHuella()
+
         // Pulsar Confirmar AUTOMÁTICAMENTE (Jhon: ningún paso es manual).
         // yaAvanzo=esComprobante: si al cerrar el diálogo la operación ya se
         // completó, NO se reintenta (evita duplicar la compra).
@@ -1388,12 +1413,18 @@ class HermesAccessibilityService : AccessibilityService() {
             Log.w(TAG, "no se pudo pulsar Confirmar")
             return false
         }
+        var reavisado = false
         repeat(MAX_INTENTOS_COMPROBANTE) {
             if (detenido) return false
             if (esComprobante() || hayTextoContiene("exitosa") || hayDescContiene("exitosa") ||
                 hayTextoContiene("operación exitosa")
             ) {
                 return true
+            }
+            // Si sigue en la ventana de huella, recordar una vez más
+            if (!reavisado && esAutenticacionBiometrica()) {
+                avisarHuella()
+                reavisado = true
             }
             esperar(300)
         }
